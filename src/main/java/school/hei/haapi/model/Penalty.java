@@ -10,7 +10,7 @@ import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.Type;
 import org.hibernate.annotations.TypeDef;
-import school.hei.haapi.endpoint.rest.model.CreateDelayPenaltyChange;
+import school.hei.haapi.endpoint.rest.model.DelayPenalty;
 import school.hei.haapi.repository.types.PostgresEnumType;
 
 import javax.persistence.Entity;
@@ -43,7 +43,7 @@ public class Penalty implements Serializable {
 
     @Type(type = "pgsql_enum")
     @Enumerated(EnumType.STRING)
-    private CreateDelayPenaltyChange.InterestTimerateEnum interestTimerate;
+    private DelayPenalty.InterestTimerateEnum interestTimerate;
 
     private int graceDelay;
 
