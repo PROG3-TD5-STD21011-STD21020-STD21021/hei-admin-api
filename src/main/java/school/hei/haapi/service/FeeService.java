@@ -1,6 +1,7 @@
 package school.hei.haapi.service;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import javax.transaction.Transactional;
 import lombok.AllArgsConstructor;
@@ -16,8 +17,10 @@ import school.hei.haapi.endpoint.event.model.gen.LateFeeVerified;
 import school.hei.haapi.model.BoundedPageSize;
 import school.hei.haapi.model.Fee;
 import school.hei.haapi.model.PageFromOne;
+import school.hei.haapi.model.Penalty;
 import school.hei.haapi.model.validator.FeeValidator;
 import school.hei.haapi.repository.FeeRepository;
+import school.hei.haapi.repository.PenalityRepository;
 
 import static org.springframework.data.domain.Sort.Direction.DESC;
 import static school.hei.haapi.endpoint.rest.model.Fee.StatusEnum.LATE;
@@ -33,6 +36,7 @@ public class FeeService {
   private final FeeValidator feeValidator;
 
   private final EventProducer eventProducer;
+  private final PenalityRepository penalityRepository;
 
   public Fee getById(String id) {
     return updateFeeStatus(feeRepository.getById(id));
@@ -118,4 +122,31 @@ public class FeeService {
     );
   }
 
+  @Scheduled(cron = "0 0 8 * * *")
+  public void applyInterestPercent() {
+    Penalty condition = penalityRepository.findAll().get(0);
+    int interestPercent = condition.getInterestPercent();
+    int graceDelay = condition.getGraceDelay();
+    int applicabilityAfterGrace = condition.getApplicabilityDelayAfterGrace();
+    List<Fee> lateFees = feeRepository.getFeesByStatus(LATE);
+    lateFees.forEach(
+            fee -> {
+              Instant due = fee.getDueDatetime();
+
+              //date limite + delai de grâce en jours
+              Instant dueGrace = due.plus(graceDelay, ChronoUnit.DAYS);
+              Instant afterGrace = due.plus(applicabilityAfterGrace, ChronoUnit.DAYS);
+
+              //negatif si dueGrace est dépassé, positif si pas encore
+              //negatif si afterGrace est dépassé, positif si pas encore, 0 si c'est le même jour
+              if(dueGrace.compareTo(Instant.now()) < 0 /*&& afterGrace.compareTo(Instant.now()) >= 0*/) {
+                int newAmount = fee.getTotalAmount() + (fee.getTotalAmount() * interestPercent / 100);
+                fee.setTotalAmount(newAmount);
+                fee.setRemainingAmount(newAmount);
+              }
+            }
+    );
+
+    feeRepository.saveAll(lateFees);
+  }
 }
