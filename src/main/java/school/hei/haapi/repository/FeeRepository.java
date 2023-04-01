@@ -27,4 +27,5 @@ public interface FeeRepository extends JpaRepository<Fee, String> {
       + "and f.remainingAmount > 0 "
       + "and f.dueDatetime < current_date")
   List<Fee> getUnpaidFees();
+  List<Fee> getAllByStatusAndStudentId(StatusEnum statusEnum, String studentId);
 }

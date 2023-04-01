@@ -16,16 +16,16 @@ public class DelayPenaltyController {
     private final DelayPenaltyService service;
     private final DelayPenaltyMapper mapper;
 
-    @GetMapping(value = "/delay_penality")
-    public school.hei.haapi.endpoint.rest.model.DelayPenalty getPenalityDelay() {
+    @GetMapping(value = "/delay_penalty")
+    public school.hei.haapi.endpoint.rest.model.DelayPenalty getPenaltyDelay() {
         return mapper.toRest(service.get());
     }
 
-    @PutMapping(value = "/delay_penality_change")
-    public school.hei.haapi.endpoint.rest.model.DelayPenalty changePenalityDelay(
-            @RequestBody CreateDelayPenaltyChange delayPenality
+    @PutMapping(value = "/delay_penalty_change")
+    public school.hei.haapi.endpoint.rest.model.DelayPenalty changePenaltyDelay(
+            @RequestBody CreateDelayPenaltyChange delayPenalty
             ) {
-        DelayPenalty toSave = mapper.toDomainDelayPenality(delayPenality);
+        DelayPenalty toSave = mapper.toDomainDelayPenality(delayPenalty);
         return mapper.toRest(service.save(toSave));
     }
 }
