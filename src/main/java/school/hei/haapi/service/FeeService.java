@@ -66,6 +66,7 @@ public class FeeService {
   public List<Fee> getFeesByStudentId(
       String studentId, PageFromOne page, BoundedPageSize pageSize,
       school.hei.haapi.endpoint.rest.model.Fee.StatusEnum status) {
+    automateInterest();
     Pageable pageable = PageRequest.of(
         page.getValue() - 1,
         pageSize.getValue(),
@@ -123,12 +124,17 @@ public class FeeService {
   }
 
   @Scheduled(cron = "0 0 8 * * *")
-  public void applyInterestPercent() {
+  public void automateInterest() {
+    List<Fee> lateFees = feeRepository.getFeesByStatus(LATE);
+    applyInterestPercent(lateFees);
+  }
+
+  public void applyInterestPercent(List<Fee> lateFees) {
     Penalty condition = penalityRepository.findAll().get(0);
     int interestPercent = condition.getInterestPercent();
     int graceDelay = condition.getGraceDelay();
     int applicabilityAfterGrace = condition.getApplicabilityDelayAfterGrace();
-    List<Fee> lateFees = feeRepository.getFeesByStatus(LATE);
+
     lateFees.forEach(
             fee -> {
               Instant due = fee.getDueDatetime();
@@ -137,12 +143,18 @@ public class FeeService {
               Instant dueGrace = due.plus(graceDelay, ChronoUnit.DAYS);
               Instant afterGrace = due.plus(applicabilityAfterGrace, ChronoUnit.DAYS);
 
+              Instant nextApplyInterest = fee.getLastApplyInterest() != null?fee.getLastApplyInterest().plus(24, ChronoUnit.HOURS):null;
+              Instant tentativeApplyInterest = Instant.now();
               //negatif si dueGrace est dépassé, positif si pas encore
               //negatif si afterGrace est dépassé, positif si pas encore, 0 si c'est le même jour
-              if(dueGrace.compareTo(Instant.now()) < 0 /*&& afterGrace.compareTo(Instant.now()) >= 0*/) {
+
+              if(dueGrace.compareTo(Instant.now()) < 0
+                      /*&& afterGrace.compareTo(Instant.now()) >= 0*/
+                      && nextApplyInterest != null ? nextApplyInterest.compareTo(tentativeApplyInterest) < 0 : true) {
                 int newAmount = fee.getTotalAmount() + (fee.getTotalAmount() * interestPercent / 100);
                 fee.setTotalAmount(newAmount);
                 fee.setRemainingAmount(newAmount);
+                fee.setLastApplyInterest(tentativeApplyInterest);
               }
             }
     );
