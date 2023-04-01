@@ -63,10 +63,11 @@ public class Fee implements Serializable {
 
   private String comment;
 
+  private Instant lastApplyInterest;
+
   @CreationTimestamp
   @Getter(AccessLevel.NONE)
   private Instant creationDatetime;
-
   private Instant dueDatetime;
 
   @OneToMany(mappedBy = "fee")
