@@ -17,10 +17,10 @@ import school.hei.haapi.endpoint.event.model.gen.LateFeeVerified;
 import school.hei.haapi.model.BoundedPageSize;
 import school.hei.haapi.model.Fee;
 import school.hei.haapi.model.PageFromOne;
-import school.hei.haapi.model.Penalty;
+import school.hei.haapi.model.DelayPenalty;
 import school.hei.haapi.model.validator.FeeValidator;
 import school.hei.haapi.repository.FeeRepository;
-import school.hei.haapi.repository.PenalityRepository;
+import school.hei.haapi.repository.DelayPenaltyRepository;
 
 import static org.springframework.data.domain.Sort.Direction.DESC;
 import static school.hei.haapi.endpoint.rest.model.Fee.StatusEnum.LATE;
@@ -36,7 +36,7 @@ public class FeeService {
   private final FeeValidator feeValidator;
 
   private final EventProducer eventProducer;
-  private final PenalityRepository penalityRepository;
+  private final DelayPenaltyRepository delayPenaltyRepository;
 
   public Fee getById(String id) {
     return updateFeeStatus(feeRepository.getById(id));
@@ -66,7 +66,8 @@ public class FeeService {
   public List<Fee> getFeesByStudentId(
       String studentId, PageFromOne page, BoundedPageSize pageSize,
       school.hei.haapi.endpoint.rest.model.Fee.StatusEnum status) {
-    automateInterest();
+    List<Fee> specifiedLateFees = feeRepository.getFeesByStatusAndStudentId(LATE, studentId);
+    applyInterestPercent(specifiedLateFees);
     Pageable pageable = PageRequest.of(
         page.getValue() - 1,
         pageSize.getValue(),
@@ -130,7 +131,7 @@ public class FeeService {
   }
 
   public void applyInterestPercent(List<Fee> lateFees) {
-    Penalty condition = penalityRepository.findAll().get(0);
+    DelayPenalty condition = delayPenaltyRepository.findAll().get(0);
     int interestPercent = condition.getInterestPercent();
     int graceDelay = condition.getGraceDelay();
     int applicabilityAfterGrace = condition.getApplicabilityDelayAfterGrace();
@@ -139,20 +140,16 @@ public class FeeService {
             fee -> {
               Instant due = fee.getDueDatetime();
 
-              //date limite + delai de grâce en jours
               Instant dueGrace = due.plus(graceDelay, ChronoUnit.DAYS);
               Instant afterGrace = due.plus(applicabilityAfterGrace, ChronoUnit.DAYS);
 
               Instant nextApplyInterest = fee.getLastApplyInterest() != null?fee.getLastApplyInterest().plus(24, ChronoUnit.HOURS):null;
               Instant tentativeApplyInterest = Instant.now();
-              //negatif si dueGrace est dépassé, positif si pas encore
-              //negatif si afterGrace est dépassé, positif si pas encore, 0 si c'est le même jour
 
               if(dueGrace.compareTo(Instant.now()) < 0
                       /*&& afterGrace.compareTo(Instant.now()) >= 0*/
-                      && nextApplyInterest != null ? nextApplyInterest.compareTo(tentativeApplyInterest) < 0 : true) {
-                int newAmount = fee.getTotalAmount() + (fee.getTotalAmount() * interestPercent / 100);
-                fee.setTotalAmount(newAmount);
+                      && (nextApplyInterest != null ? nextApplyInterest.compareTo(tentativeApplyInterest) < 0 : true)) {
+                int newAmount = fee.getRemainingAmount() + (fee.getRemainingAmount() * interestPercent / 100);
                 fee.setRemainingAmount(newAmount);
                 fee.setLastApplyInterest(tentativeApplyInterest);
               }
