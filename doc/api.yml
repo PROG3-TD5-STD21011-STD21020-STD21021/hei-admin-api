@@ -1123,13 +1123,7 @@ components:
           type: integer
         applicability_delay_after_grace:
           type: integer
-        student_id:
-          type: string
-        status:
-          type: string
-          enum:
-            - GLOBAL
-            - SPECIFIC
+
     DelayPenalty:
       allOf:
         - $ref: '#/components/schemas/CreateDelayPenaltyChange'
