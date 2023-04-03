@@ -13,7 +13,7 @@ public class CreateUpdateDelayPenaltyValidator implements Consumer<CreateDelayPe
     if(create.getInterestPercent() <= 0 || create.getInterestPercent() == null) {
       throw new BadRequestException("Interest is mandatory and cannot be negative");
     }
-    if(create.getInterestTimerate() != null || !(create.getInterestTimerate() instanceof InterestTimerateEnum)) {
+    if(create.getInterestTimerate() == null || !(create.getInterestTimerate() instanceof InterestTimerateEnum)) {
       throw new BadRequestException("Timerate is mandatory InterestTimerateEnum type");
     }
     if(create.getGraceDelay() <= 0 || create.getGraceDelay() == null) {

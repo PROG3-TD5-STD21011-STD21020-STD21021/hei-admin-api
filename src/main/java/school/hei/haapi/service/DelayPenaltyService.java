@@ -1,5 +1,6 @@
 package school.hei.haapi.service;
 
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -14,11 +15,8 @@ public class DelayPenaltyService {
     private final DelayPenaltyRepository repository;
     private final FeeService feeService;
 
-    public DelayPenalty get() {
-        DelayPenalty current = repository.getByStatus(DelayPenalty.StatusEnum.GLOBAL);
-        if (current == null) {
-            throw new NotFoundException("No data to display");
-        }
+    public List<DelayPenalty> get() {
+        List<DelayPenalty> current = repository.findAll();
         return current;
     }
 

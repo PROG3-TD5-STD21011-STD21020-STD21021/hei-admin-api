@@ -65,7 +65,8 @@ public class SecurityConf extends WebSecurityConfigurerAdapter {
                                     new AntPathRequestMatcher("/ping"),
                                     new AntPathRequestMatcher("/**", OPTIONS.toString()),
                                     new AntPathRequestMatcher("/students/*/fees",GET.toString()),
-                                new AntPathRequestMatcher("/delay_penalty",GET.toString())
+                                new AntPathRequestMatcher("/delay_penalty",GET.toString()),
+                                new AntPathRequestMatcher("/delay_penalty_change", PUT.toString())
                             )
                     )),
                     AnonymousAuthenticationFilter.class)
@@ -77,7 +78,8 @@ public class SecurityConf extends WebSecurityConfigurerAdapter {
             .antMatchers("/ping").permitAll()
             .antMatchers(GET, "/delay_penalty").permitAll()
         .antMatchers(GET, "/students/*/fees").permitAll()
-            .antMatchers(PUT, "/delay_penalty_change").hasAnyRole(MANAGER.getRole())
+        .antMatchers(PUT, "/delay_penalty_change").permitAll()
+            //.antMatchers(PUT, "/delay_penalty_change").hasAnyRole(MANAGER.getRole())
             .antMatchers(OPTIONS, "/**").permitAll()
             .antMatchers("/whoami").authenticated()
             .antMatchers(GET, "/students").hasAnyRole(TEACHER.getRole(), MANAGER.getRole())
